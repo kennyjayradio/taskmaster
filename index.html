@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TaskMaster">
+<title>TaskMaster</title>
+<style>
+:root {
+  --brand:#02528A; --brand-dk:#013A63; --brand-lt:#E8F4FD;
+  --fire:#FF3B30; --fire-lt:#FFF0EE;
+  --high:#FF9500; --high-lt:#FFF5E6;
+  --med:#DDAD00;  --med-lt:#FFFBE6;
+  --low:#34C759;  --low-lt:#EDFBF1;
+  --recur:#007AFF;--flag:#9B59B6;
+  --idea:#0A2342; --run:#059669;
+  --bg:#F0F2F5; --card:#fff; --text:#1A1A2E; --muted:#6B7280;
+  --border:#E2E5EC; --radius:14px;
+  --sb:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:-apple-system,'SF Pro Display',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overscroll-behavior:none}
+
+/* HEADER */
+.hdr{background:var(--brand);padding:48px 16px 0;position:sticky;top:0;z-index:100}
+.hdr-top{display:flex;align-items:center;gap:10px;padding-bottom:10px}
+
+
+
+
+.hdr-titles{flex:1}
+.hdr-titles h1{font-size:17px;font-weight:800;color:#fff;letter-spacing:-0.3px;line-height:1.1}
+.hdr-titles p{font-size:10px;color:rgba(255,255,255,0.6);margin-top:1px}
+.hdr-sync{font-size:10px;color:rgba(255,255,255,0.5);text-align:right;white-space:nowrap}
+
+/* TABS */
+.tabs{display:flex;background:var(--brand-dk);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:9px 14px;font-size:12px;font-weight:600;color:rgba(255,255,255,0.5);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;transition:all .2s}
+.tab.active{color:#fff;border-bottom-color:#fff}
+
+/* CONTENT */
+.content{padding:14px;padding-bottom:calc(24px + var(--sb));max-width:600px;margin:0 auto;display:none}
+.content.active{display:block}
+
+/* STATS ROW */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.stat{background:var(--card);border-radius:12px;padding:10px 6px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.06);cursor:pointer;transition:transform .15s}
+.stat:active{transform:scale(.97)}
+.stat-num{font-size:24px;font-weight:800;line-height:1;margin-bottom:2px}
+.stat-lbl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+
+/* FILTER STRIP */
+.filter-strip{display:none;flex-direction:column;gap:8px;background:var(--card);border-radius:12px;padding:12px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.filter-strip.show{display:flex}
+.filter-strip label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.filter-strip select{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:#fff;-webkit-appearance:none;appearance:none;color:var(--text);outline:none}
+
+/* SORT BAR */
+.sort-bar{display:flex;gap:7px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.sort-bar::-webkit-scrollbar{display:none}
+.sbtn{flex:0 0 auto;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border);font-size:11px;font-weight:600;color:var(--muted);background:#fff;cursor:pointer;white-space:nowrap;transition:all .15s}
+.sbtn.active{background:var(--brand);border-color:var(--brand);color:#fff}
+
+/* TASK CARD */
+.tcard{background:var(--card);border-radius:var(--radius);padding:13px 14px;margin-bottom:9px;box-shadow:0 1px 3px rgba(0,0,0,.06);border-left:4px solid transparent;position:relative}
+.tcard.fire{border-left-color:var(--fire)}
+.tcard.high{border-left-color:var(--high)}
+.tcard.medium{border-left-color:var(--med)}
+.tcard.low{border-left-color:var(--low)}
+.tcard.recurring{border-left-color:var(--recur)}
+.tcard.done-card{opacity:.45}
+.tc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:5px}
+.tc-station{font-size:10px;font-weight:800;color:var(--brand);text-transform:uppercase;letter-spacing:.8px}
+.tc-name{font-size:15px;font-weight:600;line-height:1.3;flex:1}
+.badge{font-size:9px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.badge-fire{background:var(--fire-lt);color:#7A1A1A}
+.badge-high{background:var(--high-lt);color:#7A3E00}
+.badge-medium{background:var(--med-lt);color:#6B5500}
+.badge-low{background:var(--low-lt);color:#1A5C30}
+.tc-meta{display:flex;flex-wrap:wrap;gap:10px}
+.tc-meta span{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:3px}
+.tc-meta .overdue-tag{color:var(--fire);font-weight:700}
+.tc-meta .today-tag{color:var(--high);font-weight:700}
+.done-btn{position:absolute;right:13px;bottom:13px;width:24px;height:24px;border-radius:50%;border:2px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;transition:all .15s}
+.done-btn.done{background:var(--low);border-color:var(--low);color:#fff}
+
+/* CARD */
+.card{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:11px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.card-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px}
+
+/* FORM */
+.field{margin-bottom:13px}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.field input,.field select,.field textarea{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:16px;font-family:inherit;color:var(--text);background:#fff;-webkit-appearance:none;appearance:none;outline:none;transition:border-color .2s}
+.field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 13px center;padding-right:34px}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--brand)}
+.field textarea{resize:none;height:72px}
+
+/* PRIORITY GRID */
+.pri-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.pp{padding:9px;border-radius:10px;border:2px solid transparent;text-align:center;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+.pp.fire{background:var(--fire-lt);color:#7A1A1A}
+.pp.high{background:var(--high-lt);color:#7A3E00}
+.pp.medium{background:var(--med-lt);color:#6B5500}
+.pp.low{background:var(--low-lt);color:#1A5C30}
+.pp.fire.sel{border-color:var(--fire);box-shadow:0 0 0 3px rgba(255,59,48,.12)}
+.pp.high.sel{border-color:var(--high);box-shadow:0 0 0 3px rgba(255,149,0,.12)}
+.pp.medium.sel{border-color:var(--med);box-shadow:0 0 0 3px rgba(255,204,0,.12)}
+.pp.low.sel{border-color:var(--low);box-shadow:0 0 0 3px rgba(52,199,89,.12)}
+
+/* DURATION */
+.dur-row{display:flex;flex-wrap:wrap;gap:7px}
+.dp{padding:7px 13px;border-radius:20px;border:1.5px solid var(--border);font-size:12px;font-weight:500;color:var(--muted);background:#fff;cursor:pointer;transition:all .15s}
+.dp.sel{background:var(--brand);border-color:var(--brand);color:#fff}
+
+/* MIC BUTTON */
+.mic-row{display:flex;gap:10px;align-items:center;margin-bottom:13px}
+.mic-btn{flex:0 0 auto;width:52px;height:52px;border-radius:50%;border:none;background:var(--brand);color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(2,82,138,.3)}
+.mic-btn.recording{background:var(--fire);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,59,48,.4)}50%{box-shadow:0 0 0 10px rgba(255,59,48,0)}}
+.mic-transcript{flex:1;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;color:var(--text);background:#fff;min-height:48px;line-height:1.4}
+
+/* SUBMIT */
+.btn-primary{width:100%;padding:15px;background:var(--brand);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-primary:active{transform:scale(.98);background:var(--brand-dk)}
+.btn-secondary{width:100%;padding:12px;background:#fff;color:var(--brand);border:1.5px solid var(--brand);border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;transition:all .15s}
+.btn-secondary:active{background:var(--brand-lt)}
+
+/* IDEA CARDS */
+.icard{background:var(--card);border-radius:var(--radius);padding:13px 14px;margin-bottom:9px;box-shadow:0 1px 3px rgba(0,0,0,.06);border-left:4px solid var(--idea)}
+.ic-cat{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+.ic-cat.Morning-Show{color:#7A3E00}
+.ic-cat.Social{color:#003A7A}
+.ic-cat.Copy{color:#1A5C30}
+.ic-cat.Sweeper{color:#3D0F5E}
+.ic-cat.Promotion{color:#7A1A1A}
+.ic-cat.Marketing{color:#6B5500}
+
+/* RUNNING CARDS */
+.rcard{background:var(--card);border-radius:var(--radius);padding:13px 14px;margin-bottom:9px;box-shadow:0 1px 3px rgba(0,0,0,.06);border-left:4px solid var(--run)}
+.rc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.rc-station{font-size:10px;font-weight:800;color:var(--brand);text-transform:uppercase;letter-spacing:.8px}
+.rc-show{font-size:12px;color:var(--muted)}
+.rc-summary{font-size:14px;font-weight:500;line-height:1.4;margin-bottom:6px}
+.rc-actions{display:flex;gap:8px;flex-wrap:wrap}
+.rc-action{font-size:11px;padding:4px 10px;border-radius:20px;background:var(--low-lt);color:#1A5C30;font-weight:600}
+.rc-action.kj{background:var(--brand-lt);color:var(--brand-dk)}
+
+/* SECTION HDR */
+.sec-hdr{font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.9px;margin:14px 0 7px;padding-left:2px}
+
+/* LOGIN SCREEN */
+.login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:32px;text-align:center}
+.login-screen h2{font-size:20px;font-weight:700;margin-bottom:8px;color:var(--text)}
+.login-screen p{font-size:14px;color:var(--muted);margin-bottom:28px;line-height:1.5}
+.btn-ms{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;max-width:280px;padding:14px 20px;background:#fff;border:1.5px solid var(--border);border-radius:12px;font-size:15px;font-weight:600;color:var(--text);cursor:pointer;transition:all .15s;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.btn-ms:active{transform:scale(.98)}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-icon{font-size:40px;margin-bottom:10px}
+.empty h3{font-size:16px;font-weight:600;color:var(--text);margin-bottom:5px}
+.empty p{font-size:13px;line-height:1.5}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(80px + var(--sb));left:50%;transform:translateX(-50%) translateY(16px);background:#1A1A2E;color:#fff;padding:11px 18px;border-radius:30px;font-size:13px;font-weight:500;opacity:0;transition:all .3s;z-index:999;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ALERT LIST */
+.alert-list{display:none;flex-direction:column;gap:6px;margin-bottom:14px}
+.alert-list.show{display:flex}
+.alert-item{border-radius:10px;padding:10px 13px;font-size:13px;font-weight:500}
+.alert-item.overdue{background:var(--fire-lt);color:#7A1A1A;border-left:3px solid var(--fire)}
+.alert-item.today{background:var(--high-lt);color:#7A3E00;border-left:3px solid var(--high)}
+.alert-top{font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+
+.auth-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:rgba(255,255,255,.7);background:rgba(255,255,255,.1);border-radius:20px;padding:3px 8px}
+.auth-badge.ok{color:#34C759;background:rgba(52,199,89,.15)}
+
+/* Loading */
+.loading{display:flex;align-items:center;justify-content:center;gap:8px;padding:32px;color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-top">
+    <!--logos removed-->
+    <div class="hdr-titles">
+      <h1>TaskMaster</h1>
+      <p>HeyRateThis · Albright O'Malley Brenner</p>
+    </div>
+    <div id="auth-badge" class="auth-badge">⏳ Loading</div>
+  </div>
+  <div class="tabs" id="tabs">
+    <div class="tab active" onclick="switchTab(0)">＋ Add</div>
+    <div class="tab" onclick="switchTab(1)">📋 Inbox</div>
+    <div class="tab" onclick="switchTab(2)">💡 Ideas</div>
+    <div class="tab" onclick="switchTab(3)">🏃 Running</div>
+  </div>
+</div>
+
+<!-- TAB 0: ADD TASK -->
+<div class="content active" id="tab0">
+  <!-- Voice capture -->
+  <div class="card">
+    <div class="card-lbl">🎤 Voice Capture</div>
+    <div class="mic-row">
+      <button class="mic-btn" id="mic-btn" onclick="toggleMic()">🎤</button>
+      <div class="mic-transcript" id="mic-transcript"></div>
+    </div>
+    
+  </div>
+
+  <div class="card">
+    <div class="card-lbl">Station / Client</div>
+    <div class="field" style="margin:0">
+      <select id="f-station">
+        <option value="">Select…</option>
+        <optgroup label="── Radio Stations ──">
+          <option>BD&amp;B</option><option>HTN</option><option>KATI</option><option>KBAY</option>
+          <option>KCLR</option><option>KEZR</option><option>KIMN</option><option>KJLO</option>
+          <option>KKJG</option><option>KMDL</option><option>KMXI</option><option>KRKO</option>
+          <option>KRQV</option><option>KSNI</option><option>KUPI</option><option>KUPL</option>
+          <option>KUZZ</option><option>KVOO</option><option>KWTO</option><option>KXA</option>
+          <option>KXBL</option><option>KZKX</option><option>KZMO</option><option>WCCQ</option>
+          <option>WGSQ</option><option>WGNA</option><option>WIGO</option><option>WITL</option>
+          <option>WMKC</option><option>WOLF</option><option>WQDR</option><option>WQLK</option>
+          <option>WTGE</option><option>WWWF</option><option>WYCT</option><option>WYRK</option><option>YA</option>
+        </optgroup>
+        <optgroup label="── Internal / AOB ──">
+          <option>AOB Clients</option><option>AOB Marketing</option><option>AOB Office</option>
+          <option>AOB Systems</option><option>CRS</option><option>HRT Build</option>
+          <option>HRT General</option><option>HRT Hooklist</option><option>JesusBangers</option>
+          <option>KJ Personal</option><option>Connect</option><option>7onS</option><option>TSM</option>
+        </optgroup>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-lbl">Task Name</div>
+    <div class="field" style="margin:0">
+      <input type="text" id="f-task" placeholder="">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-lbl">Priority</div>
+    <div class="pri-grid">
+      <div class="pp fire sel" onclick="setPri(this,'Hair On Fire')">🔴 Hair On Fire</div>
+      <div class="pp high" onclick="setPri(this,'High')">🟠 High</div>
+      <div class="pp medium" onclick="setPri(this,'Medium')">🟡 Medium</div>
+      <div class="pp low" onclick="setPri(this,'Low')">🟢 Low</div>
+    </div>
+    <input type="hidden" id="f-priority" value="Hair On Fire">
+  </div>
+
+  <div class="card">
+    <div class="card-lbl">Duration</div>
+    <div class="dur-row">
+      <div class="dp" onclick="setDur(this,'5 Minutes')">5 min</div>
+      <div class="dp" onclick="setDur(this,'15 Minutes')">15 min</div>
+      <div class="dp sel" onclick="setDur(this,'30 Minutes')">30 min</div>
+      <div class="dp" onclick="setDur(this,'1 Hour')">1 hr</div>
+      <div class="dp" onclick="setDur(this,'2 Hours')">2 hr</div>
+      <div class="dp" onclick="setDur(this,'4 Hours')">4 hr</div>
+      <div class="dp" onclick="setDur(this,'8 Hours')">Full day</div>
+    </div>
+    <input type="hidden" id="f-duration" value="30 Minutes">
+  </div>
+
+  <div class="card">
+    <div class="card-lbl">Due Date</div>
+    <div class="field" style="margin-bottom:13px"><input type="date" id="f-due"></div>
+    <div class="card-lbl">Notes</div>
+    <div class="field" style="margin:0"><textarea id="f-notes" placeholder=""></textarea></div>
+  </div>
+
+  <button class="btn-primary" id="submit-btn" onclick="submitTask()">
+    <span>📤</span> <span id="submit-label">Add to TaskMaster</span>
+  </button>
+  <div style="text-align:center;margin-top:9px;font-size:11px;color:var(--muted)" id="submit-hint">Writes directly to your Excel file</div>
+</div>
+
+<!-- TAB 1: INBOX -->
+<div class="content" id="tab1">
+  <div class="stats" id="stats"></div>
+  <div class="alert-list" id="alert-list"></div>
+  <div class="sort-bar">
+    <div class="sbtn active" onclick="setSort('priority',this)">🔥 Priority</div>
+    <div class="sbtn" onclick="setSort('station',this)">📡 Station</div>
+    <div class="sbtn" onclick="setSort('due',this)">📅 Due Date</div>
+    <div class="sbtn" onclick="setSort('task',this)">🔤 Task</div>
+    <div class="sbtn" onclick="setSort('done',this)">✅ Done</div>
+  </div>
+  <div id="task-list"></div>
+</div>
+
+<!-- TAB 2: GREAT IDEA -->
+<div class="content" id="tab2">
+  <div class="card">
+    <div class="card-lbl">💡 Capture an Idea</div>
+    <div class="field">
+      <label>Category</label>
+      <select id="i-cat">
+        <option value="">Select…</option>
+        <option>Morning Show</option><option>Social</option><option>Copy</option>
+        <option>Sweeper</option><option>Promotion</option><option>Marketing</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Where / When Heard</label>
+      <input type="text" id="i-source" placeholder="">
+    </div>
+    <div class="field" style="margin:0">
+      <label>Description</label>
+      <textarea id="i-desc" style="height:96px" placeholder=""></textarea>
+    </div>
+  </div>
+  <button class="btn-primary" onclick="submitIdea()">💡 Save Idea</button>
+  <div class="sec-hdr" style="margin-top:20px">Recent Ideas</div>
+  <div id="idea-list"></div>
+</div>
+
+<!-- TAB 3: RUNNING -->
+<div class="content" id="tab3">
+  <div class="card">
+    <div class="card-lbl">🏃 Log a Running Note</div>
+    <div class="field">
+      <label>Station</label>
+      <select id="r-station">
+        <option value="">Select station…</option>
+        <option>BD&amp;B</option><option>HTN</option><option>KATI</option><option>KBAY</option>
+        <option>KCLR</option><option>KEZR</option><option>KIMN</option><option>KJLO</option>
+        <option>KKJG</option><option>KMDL</option><option>KMXI</option><option>KRKO</option>
+        <option>KRQV</option><option>KSNI</option><option>KUPI</option><option>KUPL</option>
+        <option>KUZZ</option><option>KVOO</option><option>KWTO</option><option>KXA</option>
+        <option>KXBL</option><option>KZKX</option><option>KZMO</option><option>WCCQ</option>
+        <option>WGSQ</option><option>WGNA</option><option>WIGO</option><option>WITL</option>
+        <option>WMKC</option><option>WOLF</option><option>WQDR</option><option>WQLK</option>
+        <option>WTGE</option><option>WWWF</option><option>WYCT</option><option>WYRK</option><option>YA</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Show</label>
+      <input type="text" id="r-show" placeholder="">
+    </div>
+    <div class="field">
+      <label>Summary</label>
+      <textarea id="r-summary" style="height:72px" placeholder=""></textarea>
+    </div>
+    <div class="field">
+      <label>Station Action</label>
+      <textarea id="r-station-action" style="height:60px" placeholder=""></textarea>
+    </div>
+    <div class="field" style="margin:0">
+      <label>KJ Action → goes to Task Inbox</label>
+      <textarea id="r-kj-action" style="height:60px" placeholder=""></textarea>
+    </div>
+  </div>
+  <button class="btn-primary" onclick="submitRunning()">🏃 Save + Add to Inbox</button>
+  <div class="sec-hdr" style="margin-top:20px">Recent Running Notes</div>
+  <div id="run-list"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG ───────────────────────────────────────────────────
+const CLIENT_ID  = '9fc648d8-a08b-4db8-a59b-343882717201';
+const TENANT_ID  = '3993788c-bd80-42c7-8e7e-946aef43f2d3';
+const REDIRECT   = 'https://kennyjayradio.github.io/taskmaster';
+const FILE_PATH  = 'AOB/Flow/Tasks/TaskMaster_Pro_v3.xlsx';
+const TABLE_NAME = 'tblTaskInbox';
+const SCOPES     = ['Files.ReadWrite','User.Read','offline_access'];
+
+const MSAL_CONFIG = {
+  auth: {
+    clientId: CLIENT_ID,
+    authority: `https://login.microsoftonline.com/${TENANT_ID}`,
+    redirectUri: REDIRECT,
+  },
+  cache: { cacheLocation: 'localStorage', storeAuthStateInCookie: true }
+};
+
+// ── STATE ────────────────────────────────────────────────────
+let msalInstance = null;
+let account      = null;
+let accessToken  = null;
+let tasks        = [];
+let ideas        = [];
+let runLogs      = [];
+let currentSort  = 'priority';
+let filterActive = false;
+
+const PRI_ORDER = {'Hair On Fire':0,'High':1,'Medium':2,'Low':3,'':4};
+const PRI_CLASS = {'Hair On Fire':'fire','High':'high','Medium':'medium','Low':'low'};
+const PRI_EMOJI = {'Hair On Fire':'🔴','High':'🟠','Medium':'🟡','Low':'🟢'};
+
+// ── LOCAL STORE FALLBACK ─────────────────────────────────────
+function loadLocal(key){ try{ return JSON.parse(localStorage.getItem(key)||'[]'); }catch(e){return [];} }
+function saveLocal(key,val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+// ── MSAL LOAD ────────────────────────────────────────────────
+function loadMSAL(cb){
+  if(window.msal){ cb(); return; }
+  const s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/msal.js/3.11.0/msal-browser.min.js';
+  s.onload = cb;
+  document.head.appendChild(s);
+}
+
+async function initAuth(){
+  loadMSAL(async ()=>{
+    msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
+    await msalInstance.initialize();
+
+    // Handle redirect response
+    try {
+      const resp = await msalInstance.handleRedirectPromise();
+      if(resp){ account = resp.account; accessToken = resp.accessToken; }
+    } catch(e){}
+
+    const accounts = msalInstance.getAllAccounts();
+    if(accounts.length > 0){ account = accounts[0]; }
+
+    if(account){
+      try{
+        const r = await msalInstance.acquireTokenSilent({scopes:SCOPES, account});
+        accessToken = r.accessToken;
+        setBadge(true);
+        loadFromExcel();
+      } catch(e){
+        setBadge(false);
+        loadLocalData();
+      }
+    } else {
+      setBadge(false);
+      loadLocalData();
+    }
+  });
+}
+
+function setBadge(ok){
+  const b = document.getElementById('auth-badge');
+  if(ok){
+    b.className = 'auth-badge ok';
+    b.textContent = '✓ Live sync';
+  } else {
+    b.className = 'auth-badge';
+    b.textContent = '○ Local mode';
+  }
+}
+
+async function signIn(){
+  if(!msalInstance) return;
+  msalInstance.loginRedirect({scopes:SCOPES});
+}
+
+// ── GRAPH API ────────────────────────────────────────────────
+async function graphGet(url){
+  const r = await fetch('https://graph.microsoft.com/v1.0'+url,{
+    headers:{Authorization:'Bearer '+accessToken}
+  });
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+async function graphPost(url, body){
+  const r = await fetch('https://graph.microsoft.com/v1.0'+url,{
+    method:'POST',
+    headers:{Authorization:'Bearer '+accessToken,'Content-Type':'application/json'},
+    body: JSON.stringify(body)
+  });
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// Get OneDrive file item ID
+let fileId = null;
+async function getFileId(){
+  if(fileId) return fileId;
+  const d = await graphGet(`/me/drive/root:/${FILE_PATH}`);
+  fileId = d.id;
+  return fileId;
+}
+
+async function loadFromExcel(){
+  try {
+    const fid = await getFileId();
+    const data = await graphGet(`/me/drive/items/${fid}/workbook/tables/${TABLE_NAME}/rows`);
+    const rows = data.value || [];
+    tasks = rows.map((row,i)=>{
+      const v = row.values[0];
+      return {
+        id: i,
+        rowIndex: row.index,
+        station:  v[0]||'',
+        done:     v[1]==='TRUE'||v[1]===true||v[1]==='✓',
+        assignee: v[2]||'',
+        task:     v[3]||'',
+        desc:     v[4]||'',
+        priority: v[5]||'Medium',
+        source:   v[6]||'',
+        interval: v[7]||'',
+        status:   v[8]||'',
+        notes:    v[9]||'',
+        added:    v[10]||'',
+        due:      v[11]||''
+      };
+    });
+    saveLocal('tm_tasks', tasks);
+    renderAll();
+    showToast('✅ Synced from Excel');
+  } catch(e){
+    console.warn('Excel load failed:', e);
+    loadLocalData();
+  }
+}
+
+async function writeRowToExcel(task){
+  if(!accessToken){ saveLocal('tm_tasks', tasks); return false; }
+  try {
+    const fid = await getFileId();
+    const dueStr = task.due ? new Date(task.due+'T12:00:00').toLocaleDateString('en-US') : '';
+    await graphPost(`/me/drive/items/${fid}/workbook/tables/${TABLE_NAME}/rows`, {
+      values:[[
+        task.station, false, 'Kenny', task.task, task.notes||'',
+        task.priority, task.source||'App', task.interval||'',
+        'Not Started', '', new Date().toLocaleDateString('en-US'), dueStr
+      ]]
+    });
+    return true;
+  } catch(e){
+    console.warn('Write failed:', e);
+    return false;
+  }
+}
+
+function loadLocalData(){
+  tasks   = loadLocal('tm_tasks');
+  ideas   = loadLocal('tm_ideas');
+  runLogs = loadLocal('tm_running');
+  renderAll();
+}
+
+function renderAll(){
+  ideas   = loadLocal('tm_ideas');
+  runLogs = loadLocal('tm_running');
+  renderStats();
+  renderAlerts();
+  renderTasks();
+  renderIdeas();
+  renderRunning();
+}
+
+// ── TABS ─────────────────────────────────────────────────────
+function switchTab(i){
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('active',j===i));
+  document.querySelectorAll('.content').forEach((c,j)=>c.classList.toggle('active',j===i));
+  if(i===1) renderAll();
+}
+
+// ── STATS ────────────────────────────────────────────────────
+function renderStats(){
+  const today = new Date().toISOString().slice(0,10);
+  const open    = tasks.filter(t=>!t.done).length;
+  const fire    = tasks.filter(t=>!t.done && t.priority==='Hair On Fire').length;
+  const overdue = tasks.filter(t=>!t.done && normDate(t.due) && normDate(t.due)<today).length;
+  const doneN   = tasks.filter(t=>t.done).length;
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat" onclick="filterStat('all')">
+      <div class="stat-num" style="color:var(--brand)">${open}</div>
+      <div class="stat-lbl">Open</div>
+    </div>
+    <div class="stat" onclick="filterStat('fire')">
+      <div class="stat-num" style="color:var(--fire)">${fire}</div>
+      <div class="stat-lbl">On Fire</div>
+    </div>
+    <div class="stat" onclick="filterStat('overdue')">
+      <div class="stat-num" style="color:var(--high)">${overdue}</div>
+      <div class="stat-lbl">Overdue</div>
+    </div>
+    <div class="stat" onclick="filterStat('done')">
+      <div class="stat-num" style="color:var(--low)">${doneN}</div>
+      <div class="stat-lbl">Done</div>
+    </div>`;
+}
+
+let activeFilter = 'all';
+function filterStat(f){
+  activeFilter = f;
+  renderAlerts();
+  renderTasks();
+}
+
+// ── ALERTS (overdue + due today) ─────────────────────────────
+function renderAlerts(){
+  const today = new Date().toISOString().slice(0,10);
+  const overdue = tasks.filter(t=>!t.done && normDate(t.due) && normDate(t.due)<today);
+  const dueToday = tasks.filter(t=>!t.done && normDate(t.due)===today);
+
+  const al = document.getElementById('alert-list');
+  if(overdue.length===0 && dueToday.length===0){ al.className='alert-list'; return; }
+
+  let html = '';
+  if(overdue.length){
+    html += `<div class="alert-item overdue"><div class="alert-top">⚠️ Overdue (${overdue.length})</div>`;
+    overdue.forEach(t=>{
+      const days = Math.floor((new Date(today)-new Date(normDate(t.due)))/(86400000));
+      html += `<div style="margin-top:4px"><b>[${t.station}]</b> ${t.task} — ${days}d overdue</div>`;
+    });
+    html += '</div>';
+  }
+  if(dueToday.length){
+    html += `<div class="alert-item today"><div class="alert-top">📅 Due Today (${dueToday.length})</div>`;
+    dueToday.forEach(t=>{
+      html += `<div style="margin-top:4px"><b>[${t.station}]</b> ${t.task}</div>`;
+    });
+    html += '</div>';
+  }
+  al.innerHTML = html;
+  al.className = 'alert-list show';
+}
+
+function normDate(d){
+  if(!d) return '';
+  // handle MM/DD/YYYY or YYYY-MM-DD
+  if(d.includes('/')){
+    const p = d.split('/');
+    if(p.length===3) return `${p[2].slice(0,4)}-${p[0].padStart(2,'0')}-${p[1].padStart(2,'0')}`;
+  }
+  return d.slice(0,10);
+}
+
+// ── RENDER TASKS ─────────────────────────────────────────────
+function renderTasks(){
+  const today = new Date().toISOString().slice(0,10);
+  let list = [...tasks];
+
+  if(activeFilter==='fire')   list = list.filter(t=>!t.done && t.priority==='Hair On Fire');
+  else if(activeFilter==='overdue') list = list.filter(t=>!t.done && normDate(t.due)<today && normDate(t.due));
+  else if(activeFilter==='done') list = list.filter(t=>t.done);
+  else list = list.filter(t=>!t.done);
+
+  const compare = (a,b)=>{
+    if(currentSort==='priority'){
+      const pd=(PRI_ORDER[a.priority]||4)-(PRI_ORDER[b.priority]||4);
+      if(pd!==0) return pd;
+      if(normDate(a.due)&&normDate(b.due)) return normDate(a.due).localeCompare(normDate(b.due));
+      if(normDate(a.due)) return -1; if(normDate(b.due)) return 1;
+      return (a.station||'').localeCompare(b.station||'');
+    }
+    if(currentSort==='station') return (a.station||'').localeCompare(b.station||'');
+    if(currentSort==='due'){
+      if(normDate(a.due)&&normDate(b.due)) return normDate(a.due).localeCompare(normDate(b.due));
+      if(normDate(a.due)) return -1; if(normDate(b.due)) return 1;
+      return 0;
+    }
+    if(currentSort==='task') return (a.task||'').localeCompare(b.task||'');
+    return 0;
+  };
+  list.sort(compare);
+
+  const el = document.getElementById('task-list');
+  if(!list.length){ el.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><h3>Nothing here</h3><p>Add tasks using the + Add tab</p></div>`; return; }
+
+  let html=''; let lastStation=null;
+  list.forEach(t=>{
+    if(currentSort==='station' && t.station!==lastStation){
+      html+=`<div class="sec-hdr">${t.station}</div>`;
+      lastStation=t.station;
+    }
+    const cls = PRI_CLASS[t.priority]||'medium';
+    const badge = `badge-${cls}`;
+    const emoji = PRI_EMOJI[t.priority]||'⚪';
+    const nd = normDate(t.due);
+    const isOverdue = nd && nd<today && !t.done;
+    const isToday   = nd && nd===today && !t.done;
+    let dueLabel='';
+    if(nd){ const d=new Date(nd+'T12:00:00'); dueLabel=d.toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+
+    html+=`
+      <div class="tcard ${t.done?'done-card':cls}">
+        <div class="tc-top">
+          <div>
+            <div class="tc-station">${t.station}</div>
+            <div class="tc-name">${t.task}</div>
+          </div>
+          <span class="badge ${badge}">${emoji} ${t.priority}</span>
+        </div>
+        <div class="tc-meta">
+          ${dueLabel?`<span class="${isOverdue?'overdue-tag':isToday?'today-tag':''}">${isOverdue?'⚠️ OVERDUE':isToday?'📅 TODAY':('📅 '+dueLabel)}</span>`:'<span>📅 Undated</span>'}
+          ${t.duration?`<span>⏱ ${t.duration}</span>`:''}
+          ${t.source?`<span>📥 ${t.source}</span>`:''}
+        </div>
+        <button class="done-btn ${t.done?'done':''}" onclick="toggleDone(${t.id})">${t.done?'✓':''}</button>
+      </div>`;
+  });
+  el.innerHTML=html;
+}
+
+function toggleDone(id){
+  const t=tasks.find(x=>x.id===id);
+  if(t){ t.done=!t.done; saveLocal('tm_tasks',tasks); renderStats(); renderAlerts(); renderTasks(); }
+}
+
+function setSort(k,el){
+  currentSort=k;
+  document.querySelectorAll('.sbtn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  renderTasks();
+}
+
+// ── SUBMIT TASK ──────────────────────────────────────────────
+async function submitTask(){
+  const station  = document.getElementById('f-station').value;
+  const task     = document.getElementById('f-task').value.trim();
+  const priority = document.getElementById('f-priority').value;
+  const duration = document.getElementById('f-duration').value;
+  const due      = document.getElementById('f-due').value;
+  const notes    = document.getElementById('f-notes').value.trim();
+
+  if(!station){ showToast('⚠️ Pick a station'); return; }
+  if(!task)   { showToast('⚠️ Add a task name'); return; }
+
+  const newTask = {
+    id:Date.now(), station, task, priority, duration,
+    due:due||'', notes, source:'App', status:'Not Started', done:false,
+    added:new Date().toISOString().slice(0,10)
+  };
+  tasks.unshift(newTask);
+  saveLocal('tm_tasks',tasks);
+
+  const btn = document.getElementById('submit-btn');
+  const lbl = document.getElementById('submit-label');
+  btn.style.opacity='.7'; lbl.textContent='Saving…';
+
+  if(accessToken){
+    const ok = await writeRowToExcel(newTask);
+    showToast(ok?'✅ Written to Excel':'💾 Saved locally');
+  } else {
+    // fallback to mailto
+    let dueStr='';
+    if(due){ const d=new Date(due+'T12:00:00'); dueStr=d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+    let subj=`${station} — ${task}`;
+    if(priority!=='Medium') subj+=`, ${priority}`;
+    if(dueStr) subj+=`, ${dueStr}`;
+    let body=`Priority: ${priority}\nDuration: ${duration}`;
+    if(dueStr) body+=`\nDue: ${dueStr}`;
+    if(notes)  body+=`\nNotes: ${notes}`;
+    window.location.href=`mailto:todo@heyratethis.com?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+    showToast('📧 Opening Mail app');
+  }
+
+  btn.style.opacity='1'; lbl.textContent='Add to TaskMaster';
+  // reset
+  document.getElementById('f-station').value='';
+  document.getElementById('f-task').value='';
+  document.getElementById('f-due').value='';
+  document.getElementById('f-notes').value='';
+  document.getElementById('mic-transcript').textContent='';
+  renderStats(); renderAlerts(); renderTasks();
+}
+
+// ── VOICE ────────────────────────────────────────────────────
+let recognition=null; let isRecording=false;
+function toggleMic(){
+  if(!('webkitSpeechRecognition' in window||'SpeechRecognition' in window)){
+    showToast('⚠️ Voice not supported in this browser'); return;
+  }
+  if(isRecording){ recognition.stop(); return; }
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  recognition=new SR();
+  recognition.continuous=false;
+  recognition.interimResults=true;
+  recognition.lang='en-US';
+  recognition.onstart=()=>{ isRecording=true; document.getElementById('mic-btn').classList.add('recording'); document.getElementById('mic-btn').textContent='⏹'; document.getElementById('mic-transcript').textContent='Listening…'; };
+  recognition.onresult=(e)=>{
+    const t=Array.from(e.results).map(r=>r[0].transcript).join('');
+    document.getElementById('mic-transcript').textContent=t;
+    if(e.results[0].isFinal) parseVoice(t);
+  };
+  recognition.onend=()=>{ isRecording=false; document.getElementById('mic-btn').classList.remove('recording'); document.getElementById('mic-btn').textContent='🎤'; };
+  recognition.onerror=()=>{ isRecording=false; document.getElementById('mic-btn').classList.remove('recording'); document.getElementById('mic-btn').textContent='🎤'; };
+  recognition.start();
+}
+
+function parseVoice(text){
+  const t=text.toLowerCase();
+  // Extract station — look for known codes
+  const stations=['BD&B','HTN','KATI','KBAY','KCLR','KEZR','KIMN','KJLO','KKJG','KMDL','KMXI','KRKO','KRQV','KSNI','KUPI','KUPL','KUZZ','KVOO','KWTO','KXA','KXBL','KZKX','KZMO','WCCQ','WGSQ','WGNA','WIGO','WITL','WMKC','WOLF','WQDR','WQLK','WTGE','WWWF','WYCT','WYRK','YA'];
+  let matched='';
+  stations.forEach(s=>{ if(t.includes(s.toLowerCase())) matched=s; });
+  if(matched) document.getElementById('f-station').value=matched;
+
+  // Priority
+  const priMap={'hair on fire':'Hair On Fire','asap':'Hair On Fire','urgent':'Hair On Fire','high':'High','medium':'Medium','low':'Low'};
+  for(const[k,v] of Object.entries(priMap)){
+    if(t.includes(k)){
+      document.getElementById('f-priority').value=v;
+      document.querySelectorAll('.pp').forEach(p=>p.classList.remove('sel'));
+      const cls=PRI_CLASS[v];
+      document.querySelector(`.pp.${cls}`)?.classList.add('sel');
+      break;
+    }
+  }
+
+  // Due date
+  const today=new Date();
+  const pad=n=>String(n).padStart(2,'0');
+  const toISO=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  if(t.includes('today'))   document.getElementById('f-due').value=toISO(today);
+  if(t.includes('tomorrow')){ const d=new Date(today); d.setDate(d.getDate()+1); document.getElementById('f-due').value=toISO(d); }
+  const days=['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+  days.forEach((day,i)=>{ if(t.includes(day)){ const d=new Date(today); const diff=(i+1-d.getDay()+7)%7||7; d.setDate(d.getDate()+diff); document.getElementById('f-due').value=toISO(d); } });
+
+  // Task name — remove station, priority, due keywords
+  let taskText=text;
+  if(matched) taskText=taskText.replace(new RegExp(matched,'gi'),'');
+  ['hair on fire','asap','urgent','high priority','medium','low','today','tomorrow',...days].forEach(k=>{ taskText=taskText.replace(new RegExp(k,'gi'),''); });
+  taskText=taskText.replace(/[,\-–]+/g,' ').replace(/\s+/g,' ').trim();
+  if(taskText) document.getElementById('f-task').value=taskText;
+}
+
+// ── PRIORITY / DURATION ──────────────────────────────────────
+function setPri(el,val){
+  document.querySelectorAll('.pp').forEach(p=>p.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('f-priority').value=val;
+}
+function setDur(el,val){
+  document.querySelectorAll('.dp').forEach(p=>p.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('f-duration').value=val;
+}
+
+// ── IDEAS ────────────────────────────────────────────────────
+function submitIdea(){
+  const cat=document.getElementById('i-cat').value;
+  const src=document.getElementById('i-source').value.trim();
+  const desc=document.getElementById('i-desc').value.trim();
+  if(!desc){ showToast('⚠️ Add a description'); return; }
+  const idea={id:Date.now(),cat,src,desc,ts:new Date().toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})};
+  ideas.unshift(idea);
+  saveLocal('tm_ideas',ideas);
+  document.getElementById('i-cat').value='';
+  document.getElementById('i-source').value='';
+  document.getElementById('i-desc').value='';
+  renderIdeas();
+  showToast('💡 Idea saved');
+}
+
+const CAT_COLORS={
+  'Morning Show':['#FFF5E6','#7A3E00'],
+  'Social':['#E5F2FF','#003A7A'],
+  'Copy':['#EDFBF1','#1A5C30'],
+  'Sweeper':['#F5EEFB','#3D0F5E'],
+  'Promotion':['#FFF0EE','#7A1A1A'],
+  'Marketing':['#FFFBE6','#6B5500']
+};
+
+function renderIdeas(){
+  const el=document.getElementById('idea-list');
+  if(!ideas.length){ el.innerHTML='<div class="empty"><div class="empty-icon">💡</div><h3>No ideas yet</h3><p>Capture your first idea above</p></div>'; return; }
+  el.innerHTML=ideas.slice(0,20).map(i=>{
+    const [bg,tx]=CAT_COLORS[i.cat]||['#F5F6FA','#333'];
+    return `<div class="icard" style="background:${bg}">
+      <div class="ic-cat" style="color:${tx}">${i.cat||'General'}</div>
+      ${i.src?`<div style="font-size:11px;color:${tx};opacity:.7;margin-bottom:4px">📍 ${i.src}</div>`:''}
+      <div style="font-size:14px;color:#222;line-height:1.4">${i.desc}</div>
+      <div style="font-size:10px;margin-top:6px;opacity:.5">${i.ts}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── RUNNING ──────────────────────────────────────────────────
+async function submitRunning(){
+  const station=document.getElementById('r-station').value;
+  const show=document.getElementById('r-show').value.trim();
+  const summary=document.getElementById('r-summary').value.trim();
+  const stAction=document.getElementById('r-station-action').value.trim();
+  const kjAction=document.getElementById('r-kj-action').value.trim();
+  if(!summary){ showToast('⚠️ Add a summary'); return; }
+
+  const ts=new Date().toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+  const log={id:Date.now(),station,show,summary,stAction,kjAction,ts};
+  runLogs.unshift(log);
+  saveLocal('tm_running',runLogs);
+
+  // Add KJ action to task inbox
+  if(kjAction){
+    const newTask={
+      id:Date.now()+1, station, task:kjAction, priority:'Medium',
+      duration:'30 Minutes', due:'', notes:`From Running log ${ts}: ${summary}`,
+      source:'Running', status:'Not Started', done:false,
+      added:new Date().toISOString().slice(0,10)
+    };
+    tasks.unshift(newTask);
+    saveLocal('tm_tasks',tasks);
+    if(accessToken) await writeRowToExcel(newTask);
+  }
+
+  // Reset
+  ['r-station','r-show','r-summary','r-station-action','r-kj-action'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el.tagName==='SELECT') el.value=''; else el.value='';
+  });
+  renderRunning();
+  renderStats(); renderAlerts();
+  showToast(kjAction?'🏃 Saved + added to Inbox':'🏃 Running note saved');
+}
+
+function renderRunning(){
+  const el=document.getElementById('run-list');
+  if(!runLogs.length){ el.innerHTML='<div class="empty"><div class="empty-icon">🏃</div><h3>No running notes yet</h3><p>Log your first show monitor above</p></div>'; return; }
+  el.innerHTML=runLogs.slice(0,20).map(r=>`
+    <div class="rcard">
+      <div class="rc-top">
+        <span class="rc-station">${r.station}</span>
+        <span class="rc-show">${r.show}</span>
+        <span style="font-size:10px;color:var(--muted)">${r.ts}</span>
+      </div>
+      <div class="rc-summary">${r.summary}</div>
+      <div class="rc-actions">
+        ${r.stAction?`<span class="rc-action">📻 ${r.stAction}</span>`:''}
+        ${r.kjAction?`<span class="rc-action kj">✅ ${r.kjAction}</span>`:''}
+      </div>
+    </div>`).join('');
+}
+
+// ── TOAST ────────────────────────────────────────────────────
+function showToast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),2500);
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+initAuth();
+</script>
+</body>
+</html>
