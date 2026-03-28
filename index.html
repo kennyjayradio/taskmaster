@@ -194,7 +194,7 @@ body{font-family:-apple-system,'SF Pro Display',sans-serif;background:var(--bg);
       <h1>TaskMaster</h1>
       <p>HeyRateThis · Albright O'Malley Brenner</p>
     </div>
-    <div id="auth-badge" class="auth-badge">⏳ Loading</div>
+    <div id="auth-badge" class="auth-badge" onclick="manualSignIn()" style="cursor:pointer">⏳ Tap to sign in</div>
   </div>
   <div class="tabs" id="tabs">
     <div class="tab active" onclick="switchTab(0)">＋ Add</div>
@@ -415,6 +415,19 @@ function loadMSAL(cb){
   document.head.appendChild(s);
 }
 
+function manualSignIn(){
+  if(msalInstance) {
+    msalInstance.loginRedirect({scopes:SCOPES});
+  } else {
+    loadMSAL(()=>{
+      msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
+      msalInstance.initialize().then(()=>{
+        msalInstance.loginRedirect({scopes:SCOPES});
+      });
+    });
+  }
+}
+
 async function initAuth(){
   loadMSAL(async ()=>{
     msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
@@ -453,7 +466,8 @@ function setBadge(ok){
     b.textContent = '✓ Live sync';
   } else {
     b.className = 'auth-badge';
-    b.textContent = '○ Local mode';
+    b.textContent = '○ Tap to sign in';
+    b.style.cursor = 'pointer';
   }
 }
 
