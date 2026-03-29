@@ -209,7 +209,7 @@ body{font-family:-apple-system,'SF Pro Display',sans-serif;background:var(--bg);
 <!-- SIGN IN BANNER -->
 <div id="signin-banner" style="background:#013A63;padding:16px;display:block;width:100%;box-sizing:border-box">
   <p style="color:#fff;font-size:13px;font-weight:700;margin:0 0 10px 0">Connect to Excel — Sign in with your KJMP account</p>
-  <a href="#" id="signin-btn" ontouchstart="" onclick="event.preventDefault();manualSignIn();return false;" style="display:block;background:#fff;color:#013A63;border-radius:10px;padding:14px;font-size:16px;font-weight:700;text-align:center;text-decoration:none;font-family:-apple-system,sans-serif;-webkit-appearance:none;cursor:pointer;position:relative;z-index:999">Sign in with Microsoft →</a>
+  <a href="https://login.microsoftonline.com/3993788c-bd80-42c7-8e7e-946aef43f2d3/oauth2/v2.0/authorize?client_id=9fc648d8-a08b-4db8-a59b-343882717201&response_type=token&redirect_uri=https%3A//kennyjayradio.github.io/taskmaster&scope=Files.ReadWrite%20User.Read%20offline_access&response_mode=fragment&nonce=taskmaster" id="signin-btn" style="display:block;background:#fff;color:#013A63;border-radius:10px;padding:14px;font-size:16px;font-weight:700;text-align:center;text-decoration:none;font-family:-apple-system,sans-serif;-webkit-appearance:none">Sign in with Microsoft →</a>
 </div>
 
 <!-- TAB 0: ADD TASK -->
@@ -436,35 +436,46 @@ function manualSignIn(){
   }
 }
 
-async function initAuth(){
-  loadMSAL(async ()=>{
-    msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
-    await msalInstance.initialize();
-
-    // Handle redirect response
-    try {
-      const resp = await msalInstance.handleRedirectPromise();
-      if(resp){ account = resp.account; accessToken = resp.accessToken; }
-    } catch(e){}
-
-    const accounts = msalInstance.getAllAccounts();
-    if(accounts.length > 0){ account = accounts[0]; }
-
-    if(account){
-      try{
-        const r = await msalInstance.acquireTokenSilent({scopes:SCOPES, account});
-        accessToken = r.accessToken;
-        setBadge(true);
-        loadFromExcel();
-      } catch(e){
-        setBadge(false);
-        loadLocalData();
-      }
-    } else {
-      setBadge(false);
-      loadLocalData();
-    }
+function extractTokenFromFragment(){
+  const hash = window.location.hash;
+  if(!hash) return null;
+  const params = {};
+  hash.substring(1).split('&').forEach(p => {
+    const [k,v] = p.split('=');
+    params[k] = decodeURIComponent(v||'');
   });
+  if(params.access_token){
+    localStorage.setItem('tm_access_token', params.access_token);
+    localStorage.setItem('tm_token_expiry', Date.now() + (parseInt(params.expires_in||3600)*1000));
+    window.history.replaceState({}, document.title, window.location.pathname);
+    return params.access_token;
+  }
+  return null;
+}
+
+async function initAuth(){
+  // Check URL fragment first (returning from OAuth)
+  const fragToken = extractTokenFromFragment();
+  if(fragToken){
+    accessToken = fragToken;
+    setBadge(true);
+    loadFromExcel();
+    return;
+  }
+
+  // Check localStorage for saved token
+  const savedToken = localStorage.getItem('tm_access_token');
+  const expiry = parseInt(localStorage.getItem('tm_token_expiry')||'0');
+  if(savedToken && Date.now() < expiry - 60000){
+    accessToken = savedToken;
+    setBadge(true);
+    loadFromExcel();
+    return;
+  }
+
+  // No valid token - show banner, load local data
+  setBadge(false);
+  loadLocalData();
 }
 
 function setBadge(ok){
