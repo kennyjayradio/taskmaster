@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -203,6 +204,15 @@ body{font-family:-apple-system,'SF Pro Display',sans-serif;background:var(--bg);
     <div class="tab" onclick="switchTab(2)">💡 Ideas</div>
     <div class="tab" onclick="switchTab(3)">🏃 Running</div>
   </div>
+</div>
+
+<!-- SIGN IN BANNER -->
+<div id="signin-banner" style="background:#013A63;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:89px;z-index:99">
+  <div style="color:rgba(255,255,255,0.85);font-size:13px;line-height:1.4">
+    <div style="font-weight:700;color:#fff;margin-bottom:2px">Connect to Excel</div>
+    Sign in with your KJMP account
+  </div>
+  <button id="signin-btn" onclick="manualSignIn()" style="background:#fff;color:#013A63;border:none;border-radius:22px;padding:11px 22px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:-apple-system,sans-serif;min-height:44px;-webkit-appearance:none">Sign in →</button>
 </div>
 
 <!-- TAB 0: ADD TASK -->
@@ -465,10 +475,15 @@ function setBadge(ok){
   if(ok){
     b.className = 'auth-badge ok';
     b.textContent = '✓ Live sync';
+    const b2 = document.getElementById('signin-banner');
+    if(b2) b2.style.display='none';
+    const banner = document.getElementById('signin-banner');
+    if(banner) banner.style.display = 'none';
   } else {
     b.className = 'auth-badge';
-    b.textContent = '○ Tap to sign in';
-    b.style.cursor = 'pointer';
+    b.textContent = '○ Local mode';
+    const banner = document.getElementById('signin-banner');
+    if(banner) banner.style.display='flex';
   }
 }
 
